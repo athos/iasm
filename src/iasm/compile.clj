@@ -1,5 +1,6 @@
 (ns iasm.compile
-  (:refer-clojure :exclude [compile]))
+  (:refer-clojure :exclude [compile])
+  (:use iasm.emit))
 
 (gen-class
   :name iasm.compile.ObjExpr
@@ -18,7 +19,7 @@
         'clojure.lang.Compiler$ObjExpr)
 
 (defn- make-objexpr [form]
-  (let [emitter (constantly nil)
+  (let [emitter (make-emitter form)
         fnexpr (ObjExpr. (:tag (meta form)) emitter)]
     (letfn [(set-field! [^String field-name, ^Object value]
               (doto (.getDeclaredField Compiler$ObjExpr field-name)

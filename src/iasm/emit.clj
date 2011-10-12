@@ -55,7 +55,7 @@
   :iconst_1 :iconst_2 :iconst_3 :iconst_4
   :iconst_5 :lconst_0 :lconst_1 :fconst_0
   :fconst_1 :fconst_2 :dconst_0 :dconst_1
-;;   :bipush_:sipush_:ldc_:ldc_w
+;;   :bipush :sipush :ldc :ldc_w
 ;;   :ldc2_w :iload :lload :fload
 ;;   :dload :aload :iload_0 :iload_1
 ;;   :iload_2 :iload_3_:lload_0_:lload_1
@@ -152,13 +152,30 @@
   :if_icmple :if_acmpeq :if_acmpne :goto
   :jsr :ifnull :ifnonnull)
 
+(def ^{:private true} primitive-types
+  {'int    Type/INT_TYPE
+   'long   Type/LONG_TYPE
+   'float  Type/FLOAT_TYPE
+   'double Type/DOUBLE_TYPE
+   'void   Type/VOID_TYPE})
+
+(defn class-for-name [class-name]
+  (or (.getMapping *ns* class-name)
+      (clojure.lang.RT/classForName (name class-name))))
+
+(defn type-for-name [name]
+  (let [name (symbol name)]
+    (or (primitive-types name)
+        (let [^Class c (class-for-name name)]
+          (Type/getType c)))))
+
 (defmacro def-field-insn-emitters [& ops]
   `(do ~@(for [op ops]
            `(defmethod emit-insn ~op [insn# labels# ^GeneratorAdapter gen#]
               (let [arg# (second insn#)
-                    ^String owner# (Type/getInternalName (Class/forName (namespace arg#)))
+                    ^String owner# (.getInternalName (type-for-name (namespace arg#)))
                     ^String name# (name arg#)
-                    ^String desc# (Type/getDescriptor (Class/forName (name (:tag (meta arg#)))))
+                    ^String desc# (.getDescriptor (type-for-name (:tag (meta arg#))))
                     op# (int ~(opcode op))]
                 (.visitFieldInsn gen# op# owner# name# desc#))))))
 
@@ -169,10 +186,10 @@
   `(do ~@(for [op ops]
            `(defmethod emit-insn ~op [insn# labels# ^GeneratorAdapter gen#]
               (let [arg# (second insn#)
-                    ^String owner# (Type/getInternalName (Class/forName (namespace arg#)))
+                    ^String owner# (.getInternalName (type-for-name (namespace arg#)))
                     ^String name# (name arg#)
-                    ^Type return-type# (Type/getType (Class/forName (name (:tag (meta arg#)))))
-                    ^"[Lclojure.asm.Type;" arg-types# (into-array Type (map #(Type/getType (Class/forName (name %))) (nth insn# 2)))
+                    ^Type return-type# (type-for-name (:tag (meta arg#)))
+                    ^"[Lclojure.asm.Type;" arg-types# (into-array Type (map type-for-name (nth insn# 2)))
                     ^String desc# (Type/getMethodDescriptor return-type# arg-types#)
                     op# (int ~(opcode op))]
                 (.visitMethodInsn gen# op# owner# name# desc#))))))

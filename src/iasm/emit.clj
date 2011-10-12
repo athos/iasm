@@ -164,3 +164,18 @@
 
 (def-field-insn-emitters
   :getstatic :putstatic :getfield :putfield)
+
+(defmacro def-method-insn-emitters [& ops]
+  `(do ~@(for [op ops]
+           `(defmethod emit-insn ~op [insn# labels# ^GeneratorAdapter gen#]
+              (let [arg# (second insn#)
+                    ^String owner# (Type/getInternalName (Class/forName (namespace arg#)))
+                    ^String name# (name arg#)
+                    ^Type return-type# (Type/getType (Class/forName (name (:tag (meta arg#)))))
+                    ^"[Lclojure.asm.Type;" arg-types# (into-array Type (map #(Type/getType (Class/forName (name %))) (nth insn# 2)))
+                    ^String desc# (Type/getMethodDescriptor return-type# arg-types#)
+                    op# (int ~(opcode op))]
+                (.visitMethodInsn gen# op# owner# name# desc#))))))
+
+(def-method-insn-emitters
+  :invokevirtual :invokespecial :invokestatic :invokeinterface)

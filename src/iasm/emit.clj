@@ -196,3 +196,23 @@
 
 (def-method-insn-emitters
   :invokevirtual :invokespecial :invokestatic :invokeinterface)
+
+(defmacro def-type-insn-emitters [& ops]
+  `(do ~@(for [op ops]
+           `(defmethod emit-insn ~op [insn# labels# ^GeneratorAdapter gen#]
+              (let [^String desc# (.getInternalName (type-for-name (second insn#)))
+                    op# (int ~(opcode op))]
+                (.visitTypeInsn gen# op# desc#))))))
+
+(def-type-insn-emitters
+  :new :anewarray :checkcast :instanceof)
+
+(defmethod emit-insn :ldc [insn labels ^GeneratorAdapter gen]
+  (let [^Object const (second insn)]
+    (.visitLdcInsn gen const)))
+
+(defmethod emit-insn :iinc [insn labels ^GeneratorAdapter gen]
+  (let [[_ var incr] insn
+        var (int var)
+        incr (int incr)]
+    (.visitIincInsn gen var incr)))

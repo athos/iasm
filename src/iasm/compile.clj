@@ -1,6 +1,7 @@
 (ns iasm.compile
   (:refer-clojure :exclude [compile])
-  (:use iasm.emit))
+  (:use iasm.emit)
+  (:import [clojure.lang RT Compiler]))
 
 (gen-class
   :name iasm.compile.ObjExpr
@@ -20,16 +21,20 @@
 
 (defn- make-objexpr [form]
   (let [emitter (make-emitter form)
-        fnexpr (ObjExpr. (:tag (meta form)) emitter)]
+        fnexpr (ObjExpr. (:tag (meta form)) emitter)
+        basename (str (Compiler/munge (name (ns-name *ns*))) "$")
+        simple-name (str "fn__" (RT/nextID))
+        name (str basename simple-name)
+        internal-name (.replace name "." "/")]
     (letfn [(set-field! [^String field-name, ^Object value]
               (doto (.getDeclaredField Compiler$ObjExpr field-name)
                 (.setAccessible true)
                 (.set fnexpr value)))]
       (set-field! "src" nil)
       (set-field! "onceOnly" false)
-      (set-field! "name" "Hoge")
-      (set-field! "internalName" "Hoge")
-      (set-field! "objtype" (clojure.asm.Type/getObjectType "Hoge"))
+      (set-field! "name" name)
+      (set-field! "internalName" internal-name)
+      (set-field! "objtype" (clojure.asm.Type/getObjectType internal-name))
       (set-field! "thisName" nil)
       (set-field! "line" @clojure.lang.Compiler/LINE)
       (set-field! "keywords" {})
@@ -38,7 +43,7 @@
       (set-field! "keywordCallsites" [])
       (set-field! "protocolCallsites" [])
       (set-field! "varCallsites" [])
-      (set-field! "constantsID" 0)
+      (set-field! "constantsID" (RT/nextID))
 
       fnexpr)))
 

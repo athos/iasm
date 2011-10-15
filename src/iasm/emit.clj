@@ -207,6 +207,16 @@
 (def-type-insn-emitters
   :new :anewarray :checkcast :instanceof)
 
+(defmacro def-int-insn-emitters [& ops]
+  `(do ~@(for [op ops]
+           `(defmethod emit-insn ~op [insn# labels# ^GeneratorAdapter gen#]
+              (let [arg# (second insn#)
+                    op# (int ~(opcode op))]
+                (.visitIntInsn gen# op# arg#))))))
+
+(def-int-insn-emitters
+  :bipush :sipush :newarray)
+
 (defmethod emit-insn :ldc [insn labels ^GeneratorAdapter gen]
   (let [^Object const (second insn)]
     (.visitLdcInsn gen const)))

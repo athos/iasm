@@ -21,9 +21,12 @@
 
 (defn- make-objexpr [form]
   (let [emitter (make-emitter form)
-        fnexpr (ObjExpr. (:tag (meta form)) emitter)
+        meta (meta form)
+        fnexpr (ObjExpr. (:tag meta) emitter)
         basename (str (Compiler/munge (name (ns-name *ns*))) "$")
-        simple-name (str "fn__" (RT/nextID))
+        simple-name (if-let [n (:name meta)]
+                      (.replace (Compiler/munge (name n)) "." "_DOT_")
+                      (str "fn__" (RT/nextID)))
         name (str basename simple-name)
         internal-name (.replace name "." "/")]
     (letfn [(set-field! [^String field-name, ^Object value]

@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [compile])
   (:use iasm.compile))
 
-(defmacro iasm-fn [& form]
+(defmacro fn-iasm [& form]
   (let [c (compile form)]
-    `(construct-proxy (Class/forName ~(.getName c)))))
+    `(let [f# (construct-proxy (Class/forName ~(.getName c)))]
+       f#)))

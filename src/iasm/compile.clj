@@ -45,8 +45,12 @@
       (set-field! "constants" [])
       (set-field! "keywordCallsites" [])
       (set-field! "protocolCallsites" [])
-      (set-field! "varCallsites" [])
-      (set-field! "constantsID" (RT/nextID))
+      (if (and (= (:major *clojure-version*) 1)
+               (<= (:minor *clojure-version*) 2))
+        (do (set-field! "varCallsites" [])
+            (set-field! "constantsID" (RT/nextID)))
+        (do (set-field! "varCallsites" #{})
+            (set-field! "constantsID" (Integer/valueOf (RT/nextID)))))
 
       fnexpr)))
 
